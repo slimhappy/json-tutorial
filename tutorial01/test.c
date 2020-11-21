@@ -20,10 +20,15 @@ static int test_pass = 0;
 
 #define EXPECT_EQ_INT(expect, actual) EXPECT_EQ_BASE((expect) == (actual), expect, actual, "%d")
 
+/* 测试 null 值是否正确 */
 static void test_parse_null() {
+    /* 定义一个josn 解析出的值 */
     lept_value v;
+    /* 让这个值初始化为 LEPT_FALSE */
     v.type = LEPT_FALSE;
+    /* 调用json 解析函数 判断是否返回正确 这里传递数值为"null" */
     EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, "null"));
+    /* 判断这个根节点的指针指向的值是不是NULL */
     EXPECT_EQ_INT(LEPT_NULL, lept_get_type(&v));
 }
 
@@ -53,6 +58,7 @@ static void test_parse_invalid_value() {
 static void test_parse_root_not_singular() {
     lept_value v;
     v.type = LEPT_FALSE;
+    /* 这里这行报错了 原因是因为null x 这里不是唯一 但是 lept_parse 是唯一的*/
     EXPECT_EQ_INT(LEPT_PARSE_ROOT_NOT_SINGULAR, lept_parse(&v, "null x"));
     EXPECT_EQ_INT(LEPT_NULL, lept_get_type(&v));
 }
