@@ -3,42 +3,79 @@
 #include <stdlib.h>  /* NULL */
 
 #define EXPECT(c, ch)       do { assert(*c->json == (ch)); c->json++; } while(0)
-
+/* 定义一个结构体用于储存传进来的raw context */
 typedef struct {
     const char* json;
 }lept_context;
-
+/* 定义一个静态函数用于忽略空格和各种换行符的函数 */
 static void lept_parse_whitespace(lept_context* c) {
     const char *p = c->json;
     while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')
         p++;
     c->json = p;
 }
-
+/* 定义一个静态函数用于抓取null */
 static int lept_parse_null(lept_context* c, lept_value* v) {
+    /* 判断c指向的字符是不是'n' */
     EXPECT(c, 'n');
+    /* 匹配 null */
     if (c->json[0] != 'u' || c->json[1] != 'l' || c->json[2] != 'l')
         return LEPT_PARSE_INVALID_VALUE;
-    c->json += 3;
+    c->json += 3; 
     v->type = LEPT_NULL;
+    return LEPT_PARSE_OK;
+}
+
+
+static int lept_parse_true(lept_context* c, lept_value* v) {
+    /* 判断c指向的字符是不是'n' */
+    EXPECT(c, 't');
+    /* 匹配 true */
+    if (c->json[0] != 'r' || c->json[1] != 'u' || c->json[2] != 'e')
+        return LEPT_PARSE_INVALID_VALUE;
+    c->json += 3; 
+    v->type = LEPT_TRUE;
+    return LEPT_PARSE_OK;
+}
+
+static int lept_parse_false(lept_context* c, lept_value* v) {
+    /* 判断c指向的字符是不是'n' */
+    EXPECT(c, 'f');
+    /* 匹配 true */
+    if (c->json[0] != 'a' || c->json[1] != 'l' || c->json[2] != 's'|| c->json[3] != 'e')
+        return LEPT_PARSE_INVALID_VALUE;
+    c->json += 4; 
+    v->type = LEPT_FALSE;
     return LEPT_PARSE_OK;
 }
 
 static int lept_parse_value(lept_context* c, lept_value* v) {
     switch (*c->json) {
+        /* if the first char is 'n'， using lept_parse_null to judge */
         case 'n':  return lept_parse_null(c, v);
+        case 'f':  return lept_parse_false(c, v);
+        case 't':  return lept_parse_true(c, v);
+        /* if the first char is end symbol, return expect_value */
         case '\0': return LEPT_PARSE_EXPECT_VALUE;
         default:   return LEPT_PARSE_INVALID_VALUE;
     }
 }
 
 int lept_parse(lept_value* v, const char* json) {
+    /* if failed, v will set to null. */
     lept_context c;
+    int ret;
     assert(v != NULL);
     c.json = json;
     v->type = LEPT_NULL;
+    /* move pointer to the char which is not "" or \t \n \r */
     lept_parse_whitespace(&c);
-    return lept_parse_value(&c, v);
+    if ((ret = lept_parse_value(&c, v)) == LEPT_PARSE_OK) {
+        lept_parse_whitespace(&c);
+        if (*c.json != '\0')
+            ret = LEPT_PARSE_ROOT_NOT_SINGULAR;
+    }
+    return ret;
 }
 
 lept_type lept_get_type(const lept_value* v) {
